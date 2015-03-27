@@ -1,0 +1,14 @@
+org/wso2/carbon/appmgt/sampledeployer/http/HttpHandler$1.class
+org/wso2/carbon/appmgt/sampledeployer/appm/ClaimManagementServiceClient.class
+org/wso2/carbon/appmgt/sampledeployer/appm/RemoteUserStoreManagerServiceClient.class
+org/wso2/carbon/appmgt/sampledeployer/commandlinehandler/CommandLine.class
+org/wso2/carbon/appmgt/sampledeployer/appm/WSRegistryService_Client.class
+org/wso2/carbon/appmgt/sampledeployer/appm/LoginAdminServiceClient.class
+org/wso2/carbon/appmgt/sampledeployer/http/HttpHandler.class
+org/wso2/carbon/appmgt/sampledeployer/javascriptwrite/InvokeStatistcsJavascriptBuilder.class
+org/wso2/carbon/appmgt/sampledeployer/bean/AbstractRequest.class
+org/wso2/carbon/appmgt/sampledeployer/main/ApplicationPublisher.class
+org/wso2/carbon/appmgt/sampledeployer/bean/AppCreateRequest.class
+org/wso2/carbon/appmgt/sampledeployer/main/ConfigureStatisticsMain.class
+org/wso2/carbon/appmgt/sampledeployer/bean/MobileApplicationBean.class
+org/wso2/carbon/appmgt/sampledeployer/xmlhandler/XMLHandler.class
