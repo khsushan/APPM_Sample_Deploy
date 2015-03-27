@@ -1,4 +1,4 @@
-package org.wso2.carbon.appmgt.sampledeployer.filehandler;
+package org.wso2.carbon.appmgt.sampledeployer.deploy;
 
 import java.io.*;
 import java.util.zip.ZipEntry;

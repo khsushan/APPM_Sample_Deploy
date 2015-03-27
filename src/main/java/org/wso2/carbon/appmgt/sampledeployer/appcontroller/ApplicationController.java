@@ -1,8 +1,4 @@
-package org.wso2.carbon.appmgt.sampledeployer.controller;
-
-import java.io.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
+package org.wso2.carbon.appmgt.sampledeployer.appcontroller;
 
 /**
  * Created by ushan on 3/27/15.
