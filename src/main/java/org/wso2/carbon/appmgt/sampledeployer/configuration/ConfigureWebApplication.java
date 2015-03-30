@@ -1,6 +1,5 @@
 package org.wso2.carbon.appmgt.sampledeployer.configuration;
 
-import org.apache.axis2.AxisFault;
 import org.wso2.carbon.appmgt.sampledeployer.appm.ClaimManagementServiceClient;
 import org.wso2.carbon.appmgt.sampledeployer.appm.LoginAdminServiceClient;
 import org.wso2.carbon.appmgt.sampledeployer.appm.RemoteUserStoreManagerServiceClient;
