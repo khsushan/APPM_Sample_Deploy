@@ -1,14 +1,22 @@
 package org.wso2.carbon.appmgt.sampledeployer.appcontroller;
 
 import org.apache.log4j.Logger;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.wso2.carbon.appmgt.sampledeployer.appm.LoginAdminServiceClient;
 import org.wso2.carbon.appmgt.sampledeployer.appm.WSRegistryService_Client;
 import org.wso2.carbon.appmgt.sampledeployer.bean.AppCreateRequest;
 import org.wso2.carbon.appmgt.sampledeployer.bean.MobileApplicationBean;
 import org.wso2.carbon.appmgt.sampledeployer.http.HttpHandler;
 import org.wso2.carbon.appmgt.sampledeployer.javascriptwrite.InvokeStatistcsJavascriptBuilder;
+import org.wso2.carbon.authenticator.stub.LoginAuthenticationExceptionException;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.util.Hashtable;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by ushan on 3/27/15.
@@ -24,14 +32,20 @@ public class ApplicationController {
      private int httpPort = 9763;
      private int httpsPort = 9443;
      private WSRegistryService_Client wsRegistryService_client;
-     private String webAppPath;
+     private String webAppPath ="../../";
+     private ConcurrentHashMap<String,String> trackingCodes;
+     private InvokeStatistcsJavascriptBuilder invokeStatistcsJavascriptBuilder;
+     private LoginAdminServiceClient loginAdminServiceClient;
 
-     public  ApplicationController(String username,String password,int offset,String serviceSession) throws IOException, RegistryException {
+     public  ApplicationController(String username,String password,int offset,String ipAddress) throws IOException, RegistryException, LoginAuthenticationExceptionException {
           httpPort+=offset;
           httpsPort+=offset;
           httpsBackEndUrl = "https://localhost:"+httpsPort;
           httpBackEndUrl = "https://localhost:"+httpPort;
           httpHandler = new HttpHandler();
+          trackingCodes = new ConcurrentHashMap<String,String>();
+          loginAdminServiceClient = new LoginAdminServiceClient(httpsBackEndUrl);
+          String serviceSession =loginAdminServiceClient.authenticate(username, password);
           wsRegistryService_client = new WSRegistryService_Client(serviceSession,httpsBackEndUrl);
           publisherSession = httpHandler.doPostHttps(httpsBackEndUrl + "/publisher/api/authenticate",
                   "username=" + username + "&password=" + password + "&action=login", ""
@@ -101,19 +115,18 @@ public class ApplicationController {
           String trackingIDResponse = httpHandler.doGet(httpsBackEndUrl + "/publisher/api/asset/webapp/trackingid/" + UUID
                   , "", publisherSession, "").split(":")[1].trim();
           String trackingID = trackingIDResponse.substring(1, (trackingIDResponse.length() - 2));
-          /*trackingCodes.put(appCreateRequest.getOverview_context(), trackingID);
-          invokeStatistcsJavascriptBuilder = new InvokeStatistcsJavascriptBuilder
-                  (trackingID, ipAddress);
-          if (applicationName.equals("travelWebapp")) {
-               invokeStatistcsJavascriptBuilder.buildInvokeStaticsJavascriptFile(tomcatPath +
+
+         trackingCodes.put(appCreateRequest.getOverview_context(), trackingID);
+         invokeStatistcsJavascriptBuilder = new InvokeStatistcsJavascriptBuilder
+                 (trackingID,"");//ip address to be implement
+
+          if (appCreateRequest.getOverview_name().equals("travelWebapp")) {
+               invokeStatistcsJavascriptBuilder.buildInvokeStaticsJavascriptFile("webapppath"+//to be implement
                        "/webapps/plan-your-trip-1.0");
-          } else if (applicationName.equals("TravelBooking")) {
-               invokeStatistcsJavascriptBuilder.buildInvokeStaticsJavascriptFile(tomcatPath +
+          } else if (appCreateRequest.getOverview_name().equals("TravelBooking")) {
+               invokeStatistcsJavascriptBuilder.buildInvokeStaticsJavascriptFile("webapp path"+ //to be implement
                        "/webapps/travel-booking-1.0/js");
-          } else if (applicationName.equals("notifi")) {
-               invokeStatistcsJavascriptBuilder.buildInvokeStaticsJavascriptFile(lampPath +
-                       "/htdocs/notifi/assets/js");
-          }*/
+          }
      }
 
      public  void publishApplication(String applicationType,String applicationName,String UUID) throws IOException {
@@ -145,4 +158,71 @@ public class ApplicationController {
           return httpHandler.doPostMultiData(httpsBackEndUrl + "/publisher/api/asset/mobileapp", "none",
                   mobileApplicationBean, publisherSession);
      }
+
+    public void accsesWebPages(String webContext, String trackingCode, int hitCount,String ipAddress) {
+        String loginHtmlPage = null;
+        String webAppurl = "http://" + ipAddress + ":8280" + webContext + "/1.0.0/";
+        String responceHtml = null;
+        try {
+            loginHtmlPage =  httpHandler .getHtml(webAppurl);
+            Document html = Jsoup.parse(loginHtmlPage);
+            Element something = html.select("input[name=sessionDataKey]").first();
+            String sessionDataKey = something.val();
+            responceHtml = httpHandler.doPostHttps(httpsBackEndUrl+ "/commonauth"
+                    , "username=admin&password=admin&sessionDataKey=" + sessionDataKey
+                    , "none"
+                    , "application/x-www-form-urlencoded; charset=UTF-8");
+            Document postHtml = Jsoup.parse(responceHtml);
+            Element postHTMLResponse = postHtml.select("input[name=SAMLResponse]").first();
+            String samlResponse = postHTMLResponse.val();
+            String appmSamlSsoTokenId = httpHandler.doPostHttp(webAppurl,
+                    "SAMLResponse=" + URLEncoder.encode(samlResponse, "UTF-8"), "appmSamlSsoTokenId",
+                    "application/x-www-form-urlencoded; charset=UTF-8");
+            for (int i = 0; i < hitCount; i++) {
+                if (webContext.equals("/notifi")) {
+                    if (i == hitCount / 5) {
+                        webAppurl += "member/";
+                    } else if (i == hitCount / 2) {
+                        webAppurl = appendPageToUrl("admin", webAppurl, false);
+                    }
+                } else if (webContext.equals("/travelBooking")) {
+                    if (i == hitCount / 5) {
+                        webAppurl = appendPageToUrl("booking-step1.jsp", webAppurl, true);
+                    } else if (i == hitCount / 2) {
+                        webAppurl = appendPageToUrl("booking-step2.jsp", webAppurl, false);
+                    }
+                }
+                httpHandler.doGet("http://" + ipAddress + ":8280/statistics/",
+                        trackingCode, appmSamlSsoTokenId, webAppurl);
+                log.info("Web Page : " + webAppurl + " Hit count : " + i );
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private String appendPageToUrl(String pageName, String webAppUrl, boolean isAppendLastOne) {
+        String elements[] = webAppUrl.split("/");
+        StringBuilder newUrl = new StringBuilder();
+        for (int i = 0; i < elements.length; i++) {
+            if (!elements[i].equals("")) {
+                if (i == 0) {
+                    newUrl.append(elements[i] + "//");
+                } else if ((i == (elements.length - 1)) && isAppendLastOne) {
+                    newUrl.append(elements[i] + "/");
+                } else if (i != (elements.length - 1)) {
+                    newUrl.append(elements[i] + "/");
+                }
+            }
+        }
+        newUrl.append(pageName + "/");
+        return newUrl.toString();
+    }
+
 }
