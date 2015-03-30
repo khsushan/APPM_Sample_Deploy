@@ -2,11 +2,8 @@ package org.wso2.carbon.appmgt.sampledeployer.deploy;
 
 import org.apache.commons.io.FileUtils;
 
-import java.io.*;
-import java.nio.channels.FileChannel;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
+import java.io.File;
+import java.io.IOException;
 
 /*
 *  Copyright (c) 2005-2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
