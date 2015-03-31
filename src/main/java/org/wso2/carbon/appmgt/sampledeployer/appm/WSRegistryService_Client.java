@@ -1,9 +1,17 @@
 package org.wso2.carbon.appmgt.sampledeployer.appm;
 
+import org.apache.axis2.AxisFault;
+import org.apache.axis2.context.ConfigurationContext;
+import org.apache.axis2.context.ConfigurationContextFactory;
+import org.apache.log4j.Logger;
+import org.wso2.carbon.base.ServerConfiguration;
 import org.wso2.carbon.registry.core.Registry;
 import org.wso2.carbon.registry.core.Resource;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
 import org.wso2.carbon.registry.ws.client.registry.WSRegistryServiceClient;
+import org.wso2.carbon.utils.CarbonUtils;
+
+import java.io.File;
 
 /*
 *  Copyright (c) 2005-2014, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
@@ -24,13 +32,21 @@ import org.wso2.carbon.registry.ws.client.registry.WSRegistryServiceClient;
 */
 
 public class WSRegistryService_Client {
+    final static Logger log = Logger.getLogger(WSRegistryService_Client.class.getName());
     private Registry wsRegistryServiceClient;
+    private static final String axis2Repo = CarbonUtils.getCarbonHome() + File.separator + "repository" +
+            File.separator + "deployment" + File.separator + "client";
+    private static final String axis2Conf =
+            ServerConfiguration.getInstance().getFirstProperty("Axis2Config.clientAxis2XmlLocation");
 
-    public WSRegistryService_Client(String backEndUrl, String cookie) throws RegistryException {
-        wsRegistryServiceClient = new WSRegistryServiceClient(backEndUrl + "/services/", cookie);
+    public WSRegistryService_Client(String backEndUrl, String cookie) throws RegistryException, AxisFault {
+        ConfigurationContext configContext = ConfigurationContextFactory.createConfigurationContextFromFileSystem(
+                axis2Repo, axis2Conf);
+        wsRegistryServiceClient = new WSRegistryServiceClient(backEndUrl + "/services/","admin","admin",configContext);
     }
 
     public String getUUID(String path) throws RegistryException {
+
         Resource resource = wsRegistryServiceClient.get(path);
         return resource.getUUID();
 
