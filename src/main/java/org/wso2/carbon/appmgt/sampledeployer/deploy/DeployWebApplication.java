@@ -26,9 +26,8 @@ import java.io.IOException;
 */
 
 public class DeployWebApplication {
-    private static String homePath = "/home/ushan/Shell_Script_Test/APPM/wso2appm-1.0.0-SNAPSHOT";
+    private static String homePath = CarbonUtils.getCarbonHome();
     final static Logger log = Logger.getLogger(DeployWebApplication.class.getName());
-    //private static String homePath = "../../..";
 
     public void copyFileUsingFileStreams(String warFileName) throws IOException {
         homePath = CarbonUtils.getCarbonHome();
