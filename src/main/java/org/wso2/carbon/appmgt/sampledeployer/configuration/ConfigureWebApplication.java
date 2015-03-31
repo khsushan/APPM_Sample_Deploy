@@ -6,6 +6,7 @@ import org.wso2.carbon.appmgt.sampledeployer.appm.RemoteUserStoreManagerServiceC
 import org.wso2.carbon.authenticator.stub.LoginAuthenticationExceptionException;
 import org.wso2.carbon.claim.mgt.stub.ClaimManagementServiceException;
 import org.wso2.carbon.um.ws.api.stub.RemoteUserStoreManagerServiceUserStoreExceptionException;
+import org.wso2.carbon.utils.CarbonUtils;
 
 import java.rmi.RemoteException;
 
@@ -18,6 +19,13 @@ public class ConfigureWebApplication {
     private static LoginAdminServiceClient loginAdminServiceClient;
     private static String  session;
     private static RemoteUserStoreManagerServiceClient remoteUserStoreManagerServiceClient;
+    private static String appmPath = CarbonUtils.getCarbonHome();
+
+    static {
+        System.setProperty("javax.net.ssl.trustStore",appmPath+"/repository/resources/security/wso2carbon.jks");
+        System.setProperty("javax.net.ssl.trustStorePassword", "wso2carbon");
+        System.setProperty("javax.net.ssl.trustStoreType", "JKS");
+    }
 
     public ConfigureWebApplication(String backendUrl) throws RemoteException, LoginAuthenticationExceptionException {
         loginAdminServiceClient = new LoginAdminServiceClient(backendUrl);
@@ -36,7 +44,7 @@ public class ConfigureWebApplication {
                 , true);
     }
 
-    public void setClaimValues() throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
+    public String setClaimValues() throws RemoteUserStoreManagerServiceUserStoreExceptionException, RemoteException {
         remoteUserStoreManagerServiceClient.updateClaims("admin", "http://wso2.org/ffid", "12345151");
         remoteUserStoreManagerServiceClient.updateClaims("admin", "http://wso2.org/claims/streetaddress", "21/5");
         remoteUserStoreManagerServiceClient.updateClaims("admin", "http://wso2.org/claims/zipcode", "GL");
@@ -50,5 +58,6 @@ public class ConfigureWebApplication {
         remoteUserStoreManagerServiceClient.updateClaims("admin", "http://wso2.org/claims/country", "SriLanka");
         remoteUserStoreManagerServiceClient.updateClaims("admin", "http://wso2.org/claims/expiration_date"
                 , "31/12/2015");
+        return session;
     }
 }
