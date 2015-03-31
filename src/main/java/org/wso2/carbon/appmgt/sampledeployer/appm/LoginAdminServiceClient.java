@@ -42,12 +42,9 @@ public class LoginAdminServiceClient {
             LoginAuthenticationExceptionException {
         String sessionCookie = null;
         if (authenticationAdminStub.login(userName, password, "localhost")) {
-            System.out.println("Login Successful");
-
             ServiceContext serviceContext = authenticationAdminStub.
                     _getServiceClient().getLastOperationContext().getServiceContext();
             sessionCookie = (String) serviceContext.getProperty(HTTPConstants.COOKIE_STRING);
-            System.out.println(sessionCookie);
         }
         return sessionCookie;
     }
