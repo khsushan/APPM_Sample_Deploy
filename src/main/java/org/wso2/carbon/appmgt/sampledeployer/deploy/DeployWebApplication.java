@@ -1,6 +1,8 @@
 package org.wso2.carbon.appmgt.sampledeployer.deploy;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
+import org.wso2.carbon.utils.CarbonUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -24,11 +26,15 @@ import java.io.IOException;
 */
 
 public class DeployWebApplication {
-    //private static String homePath = "/home/ushan/Shell_Script_Test/APPM/wso2appm-1.0.0-SNAPSHOT";
-    private static String homePath = "../../..";
+    private static String homePath = "/home/ushan/Shell_Script_Test/APPM/wso2appm-1.0.0-SNAPSHOT";
+    final static Logger log = Logger.getLogger(DeployWebApplication.class.getName());
+    //private static String homePath = "../../..";
 
-    public static void copyFileUsingFileStreams(String warFileName) throws IOException {
+    public void copyFileUsingFileStreams(String warFileName) throws IOException {
+        homePath = CarbonUtils.getCarbonHome();
+        log.info("........in.........");
         File souceFile  = new File(homePath+"/samples/"+warFileName);
+        log.info(souceFile.getAbsolutePath());
         File destinantionFile = new File(homePath+"/repository/deployment/server/webapps/"+warFileName);
         FileUtils.copyFile(souceFile,
                 destinantionFile);
