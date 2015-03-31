@@ -12,6 +12,7 @@ import org.wso2.carbon.appmgt.sampledeployer.http.HttpHandler;
 import org.wso2.carbon.appmgt.sampledeployer.javascriptwrite.InvokeStatistcsJavascriptBuilder;
 import org.wso2.carbon.authenticator.stub.LoginAuthenticationExceptionException;
 import org.wso2.carbon.registry.core.exceptions.RegistryException;
+import org.wso2.carbon.utils.CarbonUtils;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -38,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ApplicationController {
 
      final static Logger log = Logger.getLogger(ApplicationController.class.getName());
-     private String publisherSession;
+     //private String publisherSession;
      private String storeSession;
      private HttpHandler httpHandler;
      private String httpsBackEndUrl;
@@ -46,37 +47,38 @@ public class ApplicationController {
      private int httpPort = 9763;
      private int httpsPort = 9443;
      private WSRegistryService_Client wsRegistryService_client;
-     //private String appmHomePath ="/home/ushan/Shell_Script_Test/APPM/wso2appm-1.0.0-SNAPSHOT";
-     private String appmHomePath ="../../..";
+     private static String appmHomePath = CarbonUtils.getCarbonHome();
      private ConcurrentHashMap<String,String> trackingCodes;
      private InvokeStatistcsJavascriptBuilder invokeStatistcsJavascriptBuilder;
      private LoginAdminServiceClient loginAdminServiceClient;
      private String ipAddress;
-     private String username;
-     private String password;
 
-     public  ApplicationController(String username,String password,int offset,String ipAddress) throws IOException, RegistryException, LoginAuthenticationExceptionException {
+    static {
+        System.setProperty("javax.net.ssl.trustStore",appmHomePath+"/repository/resources/security/wso2carbon.jks");
+        System.setProperty("javax.net.ssl.trustStorePassword", "wso2carbon");
+        System.setProperty("javax.net.ssl.trustStoreType", "JKS");
+    }
+
+    public  ApplicationController(int offset,String ipAddress,String serviceSession) throws IOException, RegistryException, LoginAuthenticationExceptionException {
           httpPort+=offset;
           httpsPort+=offset;
           this.ipAddress = ipAddress;
-          this.username =  username;
-          this.password =  password;
           httpsBackEndUrl = "https://localhost:"+httpsPort;
           httpBackEndUrl = "http://localhost:"+httpPort;
           httpHandler = new HttpHandler();
           trackingCodes = new ConcurrentHashMap<String,String>();
-          loginAdminServiceClient = new LoginAdminServiceClient(httpsBackEndUrl);
-          String serviceSession =loginAdminServiceClient.authenticate(username, password);
+          /*loginAdminServiceClient = new LoginAdminServiceClient(httpsBackEndUrl);
+          String serviceSession = loginAdminServiceClient.authenticate("admin", "admin");*/
+          log.info("Service session is : "+serviceSession);
           wsRegistryService_client = new WSRegistryService_Client(httpsBackEndUrl,serviceSession);
-          publisherSession = httpHandler.doPostHttps(httpsBackEndUrl + "/publisher/api/authenticate",
-                  "username=" + username + "&password=" + password + "&action=login", ""
-                  , "application/x-www-form-urlencoded");
           storeSession = httpHandler.doPostHttp(httpBackEndUrl + "/store/apis/user/login",
                   "{\"username\":\"admin\"" +
                           ",\"password\":\"admin\"}", "header", "application/json");
+         log.info("Store session id is : "+storeSession);
      }
 
-     public void manageWebApplication() throws IOException, RegistryException {
+     public void manageWebApplication(String publisherSession) throws IOException, RegistryException {
+
          String policyIDResponce = httpHandler.doPostHttps(httpsBackEndUrl + "/publisher/api/entitlement/policy/partial" +
                           "/policyGroup/save", "anonymousAccessToUrlPattern=false&policyGroupName" +
                           "=test&throttlingTier=Unlimited&objPartialMappings=[]&policyGroupDesc=null&userRoles=",
@@ -101,13 +103,13 @@ public class ApplicationController {
          appCreateRequest.setOverview_trackingCode(appCreateRequest.generateTrackingID());
          appCreateRequest.setOverview_transports("http");
          appCreateRequest.setOverview_webAppUrl("http://localhost:" +httpPort + "/plan-your-trip-1.0/");
-         String UUID = createWebApplication(appCreateRequest);
-         publishApplication("webapp", UUID);
+         String UUID = createWebApplication(appCreateRequest,publisherSession);
+         publishApplication("webapp", UUID,publisherSession);
          log.info(appCreateRequest.getOverview_name()+" published and UUID is "+UUID);
          subscribeApplication(appCreateRequest);
-         log.info(appCreateRequest.getOverview_name()+"application subscribed by user "+username);
+         log.info(appCreateRequest.getOverview_name()+"application subscribed by user ");
          //publishing travel booking application
-         log.info("publishing travleWebapp");
+         log.info("publishing TravelBooking");
          appCreateRequest.setOverview_name("TravelBooking");
          appCreateRequest.setOverview_displayName("TravelBooking");
          appCreateRequest.setOverview_context("/travelBooking");
@@ -121,14 +123,14 @@ public class ApplicationController {
                  ",http://wso2.org/claims/expiration_date");
          appCreateRequest.setClaimPropertyCounter("9");
          appCreateRequest.setOverview_webAppUrl("http://localhost:" + httpPort + "/travel-booking-1.0/");
-         UUID = createWebApplication(appCreateRequest);
-         publishApplication("webapp",UUID);
+         UUID = createWebApplication(appCreateRequest,publisherSession);
+         publishApplication("webapp",UUID,publisherSession);
          log.info(appCreateRequest.getOverview_name()+" published and UUID is "+UUID);
          subscribeApplication(appCreateRequest);
-         log.info(appCreateRequest.getOverview_name()+"application subscribed by user "+username);
+         log.info(appCreateRequest.getOverview_name()+"application subscribed by user ");
      }
 
-     public void manageMobilebApplication() throws IOException, InterruptedException {
+     public void manageMobilebApplication(String publisherSession) throws IOException, InterruptedException {
          log.info("publishing CleanCalc mobile application");
          MobileApplicationBean mobileApplicationBean = new MobileApplicationBean();
          mobileApplicationBean.setApkFile(appmHomePath+"/repository/resources/mobileapps/CleanCalc" +
@@ -153,8 +155,8 @@ public class ApplicationController {
                  "/Resources/screen3.png");
          mobileApplicationBean.setMobileapp("mobileapp");
          mobileApplicationBean.setAppmeta(appMeta);
-         String UUID = createMobielAppliaction(mobileApplicationBean);
-         publishApplication("mobileapp",UUID);
+         String UUID = createMobielAppliaction(mobileApplicationBean,publisherSession);
+         publishApplication("mobileapp",UUID,publisherSession);
          //wso2Con mobile application
          log.info("publishing WSO2Con mobile application");
          mobileApplicationBean.setAppmeta("{\"package\":\"com.wso2.wso2con.mobile\",\"version\":\"1.0.0\"}");
@@ -178,8 +180,8 @@ public class ApplicationController {
          mobileApplicationBean.setScreenShot2File(appmHomePath + "/repository/resources/mobileapps" +
                  "/WSO2Con/Resources/screen2.png");
          mobileApplicationBean.setMobileapp("mobileapp");
-         UUID = createMobielAppliaction(mobileApplicationBean);
-         publishApplication("mobileapp",UUID);
+         UUID = createMobielAppliaction(mobileApplicationBean,publisherSession);
+         publishApplication("mobileapp",UUID,publisherSession);
          //MyTrack mobile application
          log.info("publishing MyTrack mobile application");
          mobileApplicationBean.setAppmeta("{\"package\":\"com.google.android.maps.mytracks\",\"version\":\"1.0" +
@@ -208,12 +210,12 @@ public class ApplicationController {
          mobileApplicationBean.setScreenShot2File(appmHomePath + "/repository/resources/mobileapps/MyTracks" +
                  "/Resources/screen2.png");
          mobileApplicationBean.setMobileapp("mobileapp");
-         UUID = createMobielAppliaction(mobileApplicationBean);
-         publishApplication("mobileapp",UUID);
+         UUID = createMobielAppliaction(mobileApplicationBean,publisherSession);
+         publishApplication("mobileapp",UUID,publisherSession);
 
      }
 
-     private String createWebApplication(AppCreateRequest appCreateRequest) throws IOException, RegistryException {
+     private String createWebApplication(AppCreateRequest appCreateRequest,String publisherSession) throws IOException, RegistryException {
           String payload = appCreateRequest.generateRequestParameters();
           httpHandler.doPostHttps(httpsBackEndUrl + "/publisher/asset/webapp", payload
                   ,publisherSession, "application/x-www-form-urlencoded");
@@ -237,7 +239,7 @@ public class ApplicationController {
                   "alse\"}";
           httpHandler.doPostHttps(httpsBackEndUrl + "/publisher/api/sso/addConfig", jsonPayload,publisherSession
                   , "application/json; charset=UTF-8");
-
+           ///_system/governance/appmgt/applicationdata/provider/admin/travelWebapp/1.0.0/webapp
           String appPath = "/_system/governance/appmgt/applicationdata/provider/admin/" +
                   appCreateRequest.getOverview_name() + "/1.0.0/webapp";
           String UUID = wsRegistryService_client.getUUID(appPath);
@@ -255,10 +257,11 @@ public class ApplicationController {
               invokeStatistcsJavascriptBuilder.buildInvokeStaticsJavascriptFile(appmHomePath+
                        "/repository/deployment/server/webapps/travel-booking-1.0/js");
           }
+         log.info(appCreateRequest.getOverview_name()+" created and UUID is : "+UUID);
          return  UUID;
      }
 
-     private  void publishApplication(String applicationType,String UUID) throws IOException {
+     private  void publishApplication(String applicationType,String UUID,String publisherSession) throws IOException {
           httpHandler.doPut(httpsBackEndUrl + "/publisher/api/lifecycle/Submit%20for%20Review/" + applicationType + "/" + UUID
                   , publisherSession);
 
@@ -281,7 +284,7 @@ public class ApplicationController {
 
 
 
-     private String createMobielAppliaction(MobileApplicationBean mobileApplicationBean) throws IOException, InterruptedException {
+     private String createMobielAppliaction(MobileApplicationBean mobileApplicationBean,String publisherSession) throws IOException, InterruptedException {
          return httpHandler.doPostMultiData(httpsBackEndUrl + "/publisher/api/asset/mobileapp", "none",
                  mobileApplicationBean, publisherSession);
      }
